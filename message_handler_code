@@ -1,0 +1,626 @@
+
+response = Map();
+info "Raw message: " + message;
+if(chat.get("id") != null)
+{
+	chatId = chat.get("id");
+	zoho.cliq.extension.setProperties({"chat_id":chatId});
+	info "Chat ID Saved: " + chatId;
+}
+if(message.containsIgnoreCase("HI") || message.containsIgnoreCase("HEY"))
+{
+	text = "Hi! Welcome to Stockers ,easy way to view your stocks with cliq";
+	if(message.containsKey("chat"))
+	{
+		chatId = message.get("chat").get("id");
+		zoho.cliq.extension.setProperties({"chat_id":chatId});
+		info "Chat ID Saved: " + chatId;
+	}
+	response.put("suggestions",{"list":{{"text":"current stocks"},{"text":"news"}}});
+}
+else if(message.equalsIgnoreCase("current stocks"))
+{
+	info "Processing current command";
+	props = zoho.cliq.extension.getProperties({"api_key","api_secret","access_token"},"cliq_connection");
+	api_key = ifnull(props.get("api_key"),"");
+	api_secret = ifnull(props.get("api_secret"),"");
+	access_token = ifnull(props.get("access_token"),"");
+	if(api_key == "" || api_secret == "")
+	{
+		response.put("text","⚠ Please connect Zerodha first:\nUse `/connectZerodha`");
+	}
+	else if(access_token == "")
+	{
+		response.put("text","🔑 Zerodha not authorized.\nUse `/accessToken` to login.");
+	}
+	else
+	{
+		headers = Map();
+		headers.put("Authorization","token " + api_key + ":" + access_token);
+		headers.put("X-Kite-Version","3");
+		holdingsResponse = invokeurl
+		[
+			url :"https://api.kite.trade/portfolio/holdings"
+			type :GET
+			headers:headers
+		];
+		if(holdingsResponse != null && holdingsResponse.get("status") == "success")
+		{
+			holdings = holdingsResponse.get("data");
+			if(holdings != null && holdings.size() > 0)
+			{
+				portfolioText = "**Your Zerodha Portfolio** 📈\n\n";
+				count = 0;
+				for each  holding in holdings
+				{
+					if(count >= 10)
+					{
+						break;
+					}
+					symbol = ifnull(holding.get("tradingsymbol"),"N/A");
+					qty = 0;
+					pnl = 0.0;
+					if(holding.containsKey("quantity") && holding.get("quantity") != null)
+					{
+						try 
+						{
+							qty = holding.get("quantity").toLong();
+						}
+						catch (e)
+						{
+							qty = 0;
+						}
+					}
+					if(holding.containsKey("pnl") && holding.get("pnl") != null)
+					{
+						try 
+						{
+							pnl = holding.get("pnl").toDecimal();
+						}
+						catch (e)
+						{
+							pnl = 0.0;
+						}
+					}
+					profitVal = "-";
+					lossVal = "-";
+					if(pnl > 0)
+					{
+						profitVal = "🟢 " + pnl.toString();
+					}
+					else if(pnl < 0)
+					{
+						lossVal = "🔴 " + (pnl * -1).toString();
+					}
+					portfolioText = portfolioText + "• " + symbol + ": " + qty.toString() + " (Profit: " + profitVal + ", Loss: " + lossVal + ")\n";
+					count = count + 1;
+				}
+				portfolioText = portfolioText + "\nSay `current details` for full portfolio.";
+				response.put("text",portfolioText);
+			}
+			else
+			{
+				response.put("text","📊 No holdings found.");
+			}
+		}
+		else
+		{
+			errMsg = ifnull(holdingsResponse.get("message"),"Unknown API error");
+			response.put("text","❌ API Error: " + errMsg);
+		}
+	}
+}
+else if(message != null && message.toLowerCase().startsWith("current details"))
+{
+	props = zoho.cliq.extension.getProperties({"api_key","api_secret","access_token"},"cliq_connection");
+	api_key = ifnull(props.get("api_key"),"");
+	api_secret = ifnull(props.get("api_secret"),"");
+	access_token = ifnull(props.get("access_token"),"");
+	if(api_key == "" || api_secret == "")
+	{
+		response.put("text","⚠ Please connect Zerodha first:\nUse `/connectZerodha`");
+	}
+	else if(access_token == "")
+	{
+		response.put("text","🔑 Zerodha not authorized.\nUse `/accessToken` to login.");
+	}
+	else
+	{
+		headers = Map();
+		headers.put("Authorization","token " + api_key + ":" + access_token);
+		headers.put("X-Kite-Version","3");
+		holdingsResponse = invokeurl
+		[
+			url :"https://api.kite.trade/portfolio/holdings"
+			type :GET
+			headers:headers
+		];
+		if(holdingsResponse != null && holdingsResponse.get("status") == "success")
+		{
+			holdings = holdingsResponse.get("data");
+			if(holdings != null && holdings.size() > 0)
+			{
+				portfolioText = "**Your Full Zerodha Portfolio** 📋\n\n";
+				for each  holding in holdings
+				{
+					symbol = ifnull(holding.get("tradingsymbol"),"N/A");
+					qty = 0;
+					avgPrice = 0.0;
+					ltp = 0.0;
+					pnl = 0.0;
+					if(holding.containsKey("quantity") && holding.get("quantity") != null)
+					{
+						try 
+						{
+							qty = holding.get("quantity").toLong();
+						}
+						catch (e)
+						{
+							qty = 0;
+						}
+					}
+					if(holding.containsKey("average_price") && holding.get("average_price") != null)
+					{
+						try 
+						{
+							avgPrice = holding.get("average_price").toDecimal();
+						}
+						catch (e)
+						{
+							avgPrice = 0.0;
+						}
+					}
+					if(holding.containsKey("last_price") && holding.get("last_price") != null)
+					{
+						try 
+						{
+							ltp = holding.get("last_price").toDecimal();
+						}
+						catch (e)
+						{
+							ltp = 0.0;
+						}
+					}
+					if(holding.containsKey("pnl") && holding.get("pnl") != null)
+					{
+						try 
+						{
+							pnl = holding.get("pnl").toDecimal();
+						}
+						catch (e)
+						{
+							pnl = 0.0;
+						}
+					}
+					profitVal = "-";
+					lossVal = "-";
+					if(pnl > 0)
+					{
+						profitVal = "🟢 " + pnl.toString();
+					}
+					else if(pnl < 0)
+					{
+						lossVal = "🔴 " + (pnl * -1).toString();
+					}
+					portfolioText = portfolioText + "• " + symbol + ": Qty " + qty.toString() + ", Avg ₹" + avgPrice.toString("0.00") + ", LTP ₹" + ltp.toString("0.00") + ", Profit: " + profitVal + ", Loss: " + lossVal + "\n";
+				}
+				response.put("text",portfolioText);
+			}
+			else
+			{
+				response.put("text","📊 No holdings found.");
+			}
+		}
+		else
+		{
+			errMsg = ifnull(holdingsResponse.get("message"),"Unknown API error");
+			response.put("text","❌ API Error: " + errMsg);
+		}
+	}
+}
+else if(message.equalsIgnoreCase("news"))
+{
+	api_key = "use ur newsapi key";
+	url = "https://newsapi.org/v2/top-headlines?category=business&language=en&apiKey=" + api_key;
+	newsResp = invokeurl
+	[
+		url :url
+		type :GET
+	];
+	articles = newsResp.get("articles");
+	newsText = "";
+	if(articles != null && articles.size() > 0)
+	{
+		count = 0;
+		for each  article in articles
+		{
+			title = article.get("title");
+			sourceMap = article.get("source");
+			sourceName = if(sourceMap != null && sourceMap.get("name") != null,sourceMap.get("name"),"Source");
+			newsText = newsText + "• " + title + " (" + sourceName + ")\n\n";
+			count = count + 1;
+			if(count >= 3)
+			{
+				break;
+			}
+		}
+		text = "📈 *Latest market news:*\n\n" + newsText;
+	}
+	else
+	{
+		text = "Couldn't fetch news right now. Please try again in a while. 🙏";
+	}
+}
+else if(message.toLowerCase().startsWith("price"))
+{
+	parts = message.toList(" ");
+	if(parts.size() > 1)
+	{
+		symbol = parts.get(1).toUpperCase();
+		url = "https://www.nseindia.com/api/quote-equity?symbol=" + symbol;
+		try 
+		{
+			resp = invokeurl
+			[
+				url :url
+				type :GET
+				headers:{"User-Agent":"Mozilla/5.0"}
+			];
+			priceInfo = resp.get("priceInfo");
+			if(priceInfo != null)
+			{
+				price = priceInfo.get("lastPrice");
+				percent = priceInfo.get("pChange");
+				isProfit = if(percent > 0,true,false);
+				emoji = if(isProfit,"📈","📉");
+				text = "**" + symbol + "**\n" + "💰 ₹" + price.toString() + "\n" + emoji + " " + percent.toString() + "%";
+			}
+			else
+			{
+				text = "⚠️ Symbol not found ,pls provide exact spelling. Try: TCS / INFY / SBIN";
+			}
+		}
+		catch (e)
+		{
+			text = "❌ NSE not responding / blocked temporarily.";
+		}
+	}
+	else
+	{
+		text = "Usage: price ";
+	}
+}
+else if(message != null && message.toLowerCase().startsWith("ai analyse"))
+{
+	parts = message.toList(" ");
+	symbol = "";
+	if(parts.size() > 2)
+	{
+		symbol = parts.get(2).toUpperCase().trim();
+	}
+	else if(parts.size() > 1)
+	{
+		symbol = parts.get(1).toUpperCase().trim();
+	}
+	else
+	{
+		response.put("text","Usage: ai analyse INFY");
+		return response;
+	}
+	price = 0;
+	percent = 0;
+	// 1️⃣ Fetch Real Time Price from NSE
+	url = "https://www.nseindia.com/api/quote-equity?symbol=" + symbol;
+	try 
+	{
+		resp = invokeurl
+		[
+			url :url
+			type :GET
+			headers:{"User-Agent":"Mozilla/5.0"}
+		];
+		priceInfo = resp.get("priceInfo");
+		if(priceInfo != null)
+		{
+			price = priceInfo.get("lastPrice");
+			percent = priceInfo.get("pChange");
+		}
+	}
+	catch (e)
+	{
+		price = 0;
+		percent = 0;
+	}
+	// 2️⃣ Gemini AI Analysis
+	gemini_key = "use your gemini key";
+	// Your real API key
+	promptText = "Provide a short stock analysis for " + symbol + " considering price ₹" + price.toString() + " and daily change " + percent.toString() + "%. " + "Include sentiment (bullish or bearish), strength, risk, outlook, and a score out of 10, each on separate lines.";
+	aiText = "";
+	try 
+	{
+		g_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + gemini_key;
+		payload = Map();
+		contentsList = list();
+		partsList2 = list();
+		partMap = Map();
+		partMap.put("text",promptText);
+		partsList2.add(partMap);
+		contentItem = Map();
+		contentItem.put("parts",partsList2);
+		contentsList.add(contentItem);
+		payload.put("contents",contentsList);
+		aiResp = invokeurl
+		[
+			url :g_url
+			type :POST
+			body:payload.toString()
+			headers:{"Content-Type":"application/json"}
+		];
+		info "AI raw response: " + aiResp.toString();
+		candidates = aiResp.get("candidates");
+		if(candidates != null && candidates.size() > 0)
+		{
+			aiText = candidates.get(0).get("content").get("parts").get(0).get("text");
+		}
+	}
+	catch (e)
+	{
+		info "AI call failed: " + e.toString();
+		aiText = "";
+	}
+	// 3️⃣ Fallback with simple variants
+	if(aiText == null || aiText.trim() == "")
+	{
+		rnd = zoho.currenttime.toLong() % 3 + 1;
+		if(rnd == 1)
+		{
+			aiText = "Bullish 📈\nStrength: Positive momentum.\nRisk: Low volatility.\nOutlook: Optimistic.\nScore: 8 / 10";
+		}
+		else if(rnd == 2)
+		{
+			aiText = "Neutral\nStrength: Stable earnings.\nRisk: Market uncertainty.\nOutlook: Watch closely.\nScore: 6.5 / 10";
+		}
+		else
+		{
+			aiText = "Bearish 📉\nStrength: Strong fundamentals.\nRisk: High volatility.\nOutlook: Cautious.\nScore: 5 / 10";
+		}
+	}
+	emoji2 = if(percent > 0,"📈 ","📉 ");
+	// Parse AI lines safely
+	pos = "";
+	risk = "";
+	outlook = "";
+	score = "";
+	try 
+	{
+		lines = aiText.toList("\n");
+		for each  l in lines
+		{
+			low = l.toLowerCase();
+			if(low.contains("strength:"))
+			{
+				parts = l.toList(":");
+				if(parts.size() > 1)
+				{
+					pos = "• Strength: " + parts.get(1).trim();
+				}
+			}
+			if(low.contains("risk:"))
+			{
+				parts = l.toList(":");
+				if(parts.size() > 1)
+				{
+					risk = "• Risk: " + parts.get(1).trim();
+				}
+			}
+			if(low.contains("outlook:"))
+			{
+				parts = l.toList(":");
+				if(parts.size() > 1)
+				{
+					outlook = "• Outlook: " + parts.get(1).trim();
+				}
+			}
+			if(low.contains("score:"))
+			{
+				parts = l.toList(":");
+				if(parts.size() > 1)
+				{
+					score = "• Score: " + parts.get(1).trim();
+				}
+			}
+		}
+	}
+	catch (e)
+	{
+		pos = "• Strength: Good investor sentiment";
+		risk = "• Risk: Some volatility expected";
+		outlook = "• Outlook: Neutral for short-term";
+		score = "• Score: 6.5 / 10";
+	}
+	if(pos == "")
+	{
+		pos = "• Strength: Solid fundamentals";
+	}
+	if(risk == "")
+	{
+		risk = "• Risk: Market uncertainty present";
+	}
+	if(outlook == "")
+	{
+		outlook = "• Outlook: Watch upcoming sessions";
+	}
+	if(score == "")
+	{
+		score = "• Score: 6.5 / 10";
+	}
+	text = "*" + symbol + "*\n" + "💰 ₹" + price.toString() + "  |  " + emoji2 + percent.toString() + "%\n\n" + "🧠 AI Insights\n" + pos + "\n" + risk + "\n" + outlook + "\n" + score;
+	response.put("text",text);
+}
+else if(message.equalsIgnoreCase("help"))
+{
+	helpText = "🤖 *Stockers Bot Help*\n\n";
+	helpText = helpText + "For detailed documentation, visit: https://writer.zoho.com/writer/open/7tqdd0775fc68a4d640a789bca766d6cee102\n\n";
+	helpText = helpText + "Here’s how to get started:\n";
+	helpText = helpText + "1️⃣ Connect Zerodha → `/connectZerodha`\n";
+	helpText = helpText + "2️⃣ Authorize Token → `/accessToken`\n";
+	helpText = helpText + "3️⃣ Check token → `/showToken`\n\n";
+	helpText = helpText + "Try commands:\n";
+	helpText = helpText + "`price tcs`, `current stocks`, `news`\n\n";
+	helpText = helpText + "For full list of commands:\n➡️ Type `/commands`";
+	response.put("text",helpText);
+}
+else if(message.equalsIgnoreCase("commands"))
+{
+	cmdText = "📜 *Stockers Bot Commands List*\n\n";
+	cmdText = cmdText + "💹 Trading & Portfolio\n";
+	cmdText = cmdText + "• current stocks — View holdings & positions\n";
+	cmdText = cmdText + "• price <symbol> — Get real-time price\n";
+	cmdText = cmdText + "• target <symbol> <price> — Instant target check\n\n";
+	cmdText = cmdText + "🔔 Alerts\n";
+	cmdText = cmdText + "• alert set <symbol> <price> — Set price alert\n";
+	cmdText = cmdText + "• alert remove <symbol> — Remove alert\n\n";
+	cmdText = cmdText + "🧠 AI & News\n";
+	cmdText = cmdText + "• ai analyse <symbol> — Smart AI insights\n";
+	cmdText = cmdText + "• news — Latest business headlines\n\n";
+	cmdText = cmdText + "🔐 Zerodha Setup\n";
+	cmdText = cmdText + "• /connectZerodha — Save API Key & Secret\n";
+	cmdText = cmdText + "• /accessToken — Authorize KITE\n";
+	cmdText = cmdText + "• /showToken — Check active token\n\n";
+	cmdText = cmdText + "💡 Tip: Use *help* anytime for quick guidance!";
+	response.put("text",cmdText);
+}
+else if(message.toLowerCase().startsWith("alert set"))
+{
+	parts = message.toList(" ");
+	if(parts.size() >= 4)
+	{
+		symbol = parts.get(2).toUpperCase();
+		targetStr = parts.get(3).trim();
+		// Remove spaces
+		// Validate if numeric
+		if(!targetStr.isNumber())
+		{
+			text = "⚠️ Target price must be a number.\nExample: alert set TCS 3200";
+		}
+		else
+		{
+			try 
+			{
+				targetPrice = targetStr.toNumber();
+				// safer conversion
+				userId = user.get("id");
+				values_map = Map();
+				values_map.put("user",userId);
+				values_map.put("stock",symbol);
+				values_map.put("target",targetPrice);
+				values_map.put("status","active");
+				zoho.cliq.createRecord("stockalerts",values_map);
+				text = "🛎 Alert set successfully!\n" + "*" + symbol + "* → ₹" + targetPrice.toString() + "\nI’ll notify you at 3:25 PM daily 📩";
+			}
+			catch (e)
+			{
+				text = "❌ Couldn't save price alert. Try again!";
+			}
+		}
+	}
+	else
+	{
+		text = "Usage: alert set TCS 3200";
+	}
+}
+else if(message.toLowerCase().startsWith("alert remove"))
+{
+	parts = message.toList(" ");
+	if(parts.size() >= 3)
+	{
+		symbol = parts.get(2).toUpperCase();
+		userId = user.get("id").toString();
+		criteria_string = "stock==\"" + symbol + "\" && user==\"" + userId + "\"";
+		query_map = Map();
+		query_map.put("criteria",criteria_string);
+		resp = zoho.cliq.getRecords("stockalerts",query_map);
+		if(resp.get("status").equalsIgnoreCase("SUCCESS") && resp.get("list") != null && resp.get("list").size() > 0)
+		{
+			deleteResp = zoho.cliq.deleteRecords("stockalerts",criteria_string);
+			text = "🗑 Alert removed for *" + symbol + "*";
+		}
+		else
+		{
+			text = "⚠️ No alert found for " + symbol;
+		}
+	}
+	else
+	{
+		text = "Usage: alert remove TCS";
+	}
+}
+else if(message.toLowerCase().startsWith("target"))
+{
+	parts = message.toList(" ");
+	if(parts.size() > 2)
+	{
+		symbol = parts.get(1).toUpperCase();
+		targetStr = parts.get(2);
+		targetPrice = targetStr.toNumber();
+		// 1️⃣ Get live price from NSE
+		url = "https://www.nseindia.com/api/quote-equity?symbol=" + symbol;
+		livePrice = 0;
+		changePct = 0;
+		try 
+		{
+			resp = invokeurl
+			[
+				url :url
+				type :GET
+				headers:{"User-Agent":"Mozilla/5.0"}
+			];
+			priceInfo = resp.get("priceInfo");
+			if(priceInfo != null)
+			{
+				livePrice = priceInfo.get("lastPrice");
+				changePct = priceInfo.get("pChange");
+			}
+		}
+		catch (e)
+		{
+			text = "❌ Couldn't reach NSE right now. Try again in a bit.";
+			response.put("text",text);
+			return response;
+		}
+		// 2️⃣ Decide alert status
+		statusLine = "";
+		if(livePrice >= targetPrice)
+		{
+			statusLine = "• ✅ Target hit! Current price is at/above your alert.";
+		}
+		else
+		{
+			statusLine = "• ⏳ Not yet. Price is still below your alert level.";
+		}
+		// 3️⃣ Tiny AI-style line (simple logic, no Gemini here – always works)
+		sentimentLine = if(changePct > 0,"• Trend: Mild bullish movement today 📈","• Trend: Weak / sideways movement today 📉");
+		text = "*" + symbol + "*\n" + "💰 Current: ₹" + livePrice.toString() + "\n" + "🎯 Target:  ₹" + targetPrice.toString() + "\n\n" + "🛎 Target Status\n" + statusLine + "\n" + sentimentLine;
+	}
+	else
+	{
+		text = "Usage: `alert TCS 3200`";
+	}
+}
+else if(message.equalsIgnoreCase("debug alerts"))
+{
+	resp = zoho.cliq.getRecords("stockalerts",Map());
+	info resp;
+	// Logs full DB structure to console for analysis
+	text = "Debug run complete. Check Developer Console → Logs.";
+}
+else
+{
+	text = "Messaging me for the first time? Come say a Hi ! :grinning:";
+}
+info "Outgoing response text: " + response.get("text");
+if(response.get("text") == null)
+{
+	response.put("text",text);
+}
+return response;
