@@ -1,0 +1,15 @@
+
+response = Map();
+if(context_id.equals("zerodha_credentials_form"))
+{
+	api_key = answers.get("api_key").get("text");
+	api_secret = answers.get("api_secret").get("text");
+	// Save securely in extension properties
+	zoho.cliq.extension.setProperties({"api_key":api_key,"api_secret":api_secret});
+	info "Zerodha Credentials Saved";
+	msg = "🔐 Credentials Saved Successfully!\n\n";
+	msg = msg + "Next step:\nType `/accessToken` to authorize and link your Zerodha account.\n\n";
+	msg = msg + "📌 Access Token expires every **24 hours**, refresh daily.";
+	response.put("text",msg);
+}
+return response;
