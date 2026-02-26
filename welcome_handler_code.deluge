@@ -1,0 +1,30 @@
+
+response = Map();
+if(newuser)
+{
+	msg = "Hi *" + user.get("first_name") + "* 👋\n";
+	msg = msg + "Welcome to Stockers — Your AI trading assistant in Zoho Cliq! 📈\n\n";
+	helpText = "🤖 *Stockers Bot Help*\n\n";
+	helpText = helpText + "For detailed documentation, visit: https://writer.zoho.com/writer/open/7tqdd0775fc68a4d640a789bca766d6cee102\n\n";
+	msg = msg + "*To start using trading features, follow these steps:*\n";
+	msg = msg + "1️⃣ Type `/connectZerodha` → Enter your API Key & Secret\n";
+	msg = msg + "2️⃣ Type `/accessToken` → Login via the link & authorize Zerodha\n\n";
+	msg = msg + "🔑 Your Access Token is valid for **24 hours** only.\n";
+	msg = msg + "⏰ You will get a reminder daily to refresh it.\n\n";
+	msg = msg + "You can try commands like:\n";
+	msg = msg + "`price tcs`, `news`, `current stocks`, `ai analyse infy`";
+	response.put("text",msg);
+}
+else
+{
+	msg = "Welcome back *" + user.get("first_name") + "*! 🚀\n";
+	msg = msg + "Access token valid? Check using `/showToken` 🔍\n\n";
+	msg = msg + "Quick actions:\n";
+	msg = msg + "- Check stock price → `price <symbol>`\n";
+	msg = msg + "- Set alerts → `alert set <symbol> <price>`\n";
+	msg = msg + "- Market news → `news`\n";
+	msg = msg + "- AI Analysis → `ai analyse <symbol>`\n\n";
+	msg = msg + "Let me know how I can help! 😎";
+	response.put("text",msg);
+}
+return response;
