@@ -4,6 +4,9 @@ In a fast-paced work environment, many professionals also keep an eye on the sto
  This usually requires switching to the Zerodha Kite app or opening a separate browser, which interrupts workflow and causes productivity loss.
 Stockers solves this by bringing essential trading utilities directly inside Zoho Cliq — where users already spend most of their workday.
 
+DOCUMENTATION: https://workdrive.zohoexternal.com/file/7tqdd1b60c7bf3c2d457995c460018147ce8e 
+TUTORIAL VIDEO : https://workdrive.zohoexternal.com/file/7tqdda94a5ee0eaa34f1282c7224d5a7ef3df
+DOWNLOAD LINK : https://cliq.zoho.com/installapp.do?id=7419 
 
 🚀 Why Our Integration Is Needed
 1️⃣ No More Switching Apps for Stock Tracking
